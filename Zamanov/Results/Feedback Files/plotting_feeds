@@ -1,0 +1,13 @@
+clc
+clear all
+close all
+
+%%Feedback plots
+
+%Circular Trajectory - actual and theoretical torque values
+load('Circular_tau.mat')
+load('Circular_feedback.mat')
+motor_no = 2;
+plot(feedbackmodified(:,1),feedbackmodified(:,motor_no+1))
+hold on;
+plot(feedbackmodified(:,1),tauactuatedmodified(:,motor_no+1))

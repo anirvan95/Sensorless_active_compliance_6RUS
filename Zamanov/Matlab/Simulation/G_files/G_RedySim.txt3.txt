@@ -1,0 +1,6 @@
+G(3,1) = 0;
+G(3,2) = -1/(2*L2*cos(theta13));
+G(3,3) = -3^(1/2)/(2*L2*cos(theta13));
+G(3,4) = -((r_p*cos(theta_p/2 - pi/3)*(cos(yaw)*sin(roll) - cos(roll)*sin(pitch)*sin(yaw)))/2 + (r_p*sin(theta_p/2 - pi/3)*(sin(roll)*sin(yaw) + cos(roll)*cos(yaw)*sin(pitch)))/2)/(L2*cos(theta13));
+G(3,5) = -((3^(1/2)*(r_p*cos(theta_p/2 - pi/3)*sin(pitch)*sin(yaw) - r_p*sin(theta_p/2 - pi/3)*cos(yaw)*sin(pitch)))/2 - (r_p*cos(theta_p/2 - pi/3)*cos(pitch)*sin(roll)*sin(yaw))/2 + (r_p*sin(theta_p/2 - pi/3)*cos(pitch)*cos(yaw)*sin(roll))/2)/(L2*cos(theta13));
+G(3,6) = ((3^(1/2)*(r_p*cos(theta_p/2 - pi/3)*cos(pitch)*cos(yaw) + r_p*sin(theta_p/2 - pi/3)*cos(pitch)*sin(yaw)))/2 - (r_p*cos(theta_p/2 - pi/3)*(cos(roll)*sin(yaw) - cos(yaw)*sin(pitch)*sin(roll)))/2 + (r_p*sin(theta_p/2 - pi/3)*(cos(roll)*cos(yaw) + sin(pitch)*sin(roll)*sin(yaw)))/2)/(L2*cos(theta13));

@@ -1,0 +1,153 @@
+function [Theta_one, Theta_two, Theta_three, Theta_four, Theta_five, Theta_six, M_matrix, K_matrix, P_theta311_vect, P_theta312_vect, P_theta313_vect, P_theta321_vect, P_theta322_vect, P_theta323_vect] = inv_kin21(B,P, Pc, P_theta311, P_theta312, P_theta313, P_theta321, P_theta322, P_theta323)
+%[B, P, Pc] = sph(); %% B -> Base points P-> Grasp points matrix Pc-> Position of Payload centre
+
+n =4; 
+for i = 1:n
+	
+%%Defining parameters
+
+L1 = 0.733;%Length of link1
+L2 = 1.3; %Length of link2
+length = pdist([P(1,:);P(2,:)], 'euclidean');
+breadth = pdist([P(2,:);P(3,:)], 'euclidean');
+
+Base_translate = [1,  0, 0, -B(i,1); 0, 1, 0, -B(i,2); 0,  0, 1, -B(i,3);  0,  0,  0, 1];
+Back_translate = [1,0, 0,   B(i,1); 0, 1, 0, B(i,2); 0,  0, 1,  B(i,3);  0,  0,  0,  1];
+
+P_new = (P(i,:)-B(i,:))';
+if i == 1
+
+P_theta311_vect = [P_theta311; P_new(1)];
+P_theta312_vect = [P_theta312; P_new(2)];
+P_theta313_vect = [P_theta313; P_new(3)];
+
+else if i == 2
+		
+		P_theta321_vect = [P_theta321; P_new(1)];
+		P_theta322_vect = [P_theta322; P_new(2)];
+		P_theta323_vect = [P_theta323; P_new(3)];
+	end
+end
+
+Pc_new = Base_translate*[Pc';1];
+if P_new(1) >=0 && P_new(2) >=0
+	Theta_three(i) = asin(abs(P_new(2))/sqrt(P_new(2)*P_new(2) + P_new(1)*P_new(1)));
+	Theta_three(i) = -1.5*pi - Theta_three(i);
+	else if P_new(1) < 0 && P_new(2) >=0
+		Theta_three(i) = asin(P_new(1)/sqrt(P_new(2)*P_new(2) + P_new(1)*P_new(1)));
+		else if P_new(1) <= 0 && P_new(2) <0
+			Theta_three(i) = asin(abs(P_new(2))/sqrt(P_new(2)*P_new(2) + P_new(1)*P_new(1)));
+			Theta_three(i) = -pi/2 - Theta_three(i);
+			else 
+				Theta_three(i) = asin(abs(P_new(1))/sqrt(P_new(2)*P_new(2) + P_new(1)*P_new(1)));
+				Theta_three(i) = -pi - Theta_three(i);
+			end
+		end
+end
+
+% Theta_three(i) = atan(P_new(1)/P_new(2));
+
+Rz_anti3 =   [cos(Theta_three(i))   -sin(Theta_three(i))   0   0;   
+			  sin(Theta_three(i))    cos(Theta_three(i))   0   0; 
+			  0   0   1   0; 0  0  0   1];
+P_new = Rz_anti3*P_new;
+l2 = L2; %The projected length of link 2
+l1 = L1;
+Theta_two(i) = acos((P_new(2)^2 + P_new(3)^2 - l1^2 - l2^2)/(2*l1*l2));
+r = sqrt(l1^2 + l2^2 + 2*l1*l2*cos(Theta_two(i)));
+phi = atan((l1 + l2*cos(Theta_two(i)))/(l2*sin(Theta_two(i))));
+Theta_one(i) = phi - asin(P_new(2)/r);
+m(i,1) = 0;
+m(i,2) = l1*cos(Theta_one(i));
+m(i,3) = l1*sin(Theta_one(i));
+Dummy = Back_translate*Rz_anti3'*[m(i,1);m(i,2);m(i,3);1];
+
+
+Poly_xco = P(:,1);
+Poly_yco = P(:,2);
+[in] = inpolygon(Dummy(1), Dummy(2), Poly_xco, Poly_yco); %Checks if the co-ordinate is in/on the polygon
+
+if in == 0
+		Theta_two(i) = -Theta_two(i);
+		r = sqrt(l1^2 + l2^2 + 2*l1*l2*cos(Theta_two(i)));
+		phi = atan((l1 + l2*cos(Theta_two(i)))/(l2*sin(Theta_two(i))));
+		Theta_one(i) = phi - asin(P_new(2)/r);
+		Theta_one(i) = Theta_one(i) + pi;
+		m(i,1) = 0;
+		m(i,2) = l1*cos(Theta_one(i));
+		m(i,3) = l1*sin(Theta_one(i));
+		Dummy = Back_translate*Rz_anti3'*[m(i,1);m(i,2);m(i,3);1];
+		
+end
+
+M_matrix(i,1:3) = Dummy(1:3);
+
+kx = 0;
+ky = l1*cos(Theta_one(i)) + l2*cos(Theta_one(i) + Theta_two(i));
+kz = l1*sin(Theta_one(i)) + l2*sin(Theta_one(i) + Theta_two(i))
+Theta_one(i)
+Theta_two(i)
+Dummyk = Back_translate*Rz_anti3'*[kx;ky;kz;1];
+K_matrix(i,1:3) = Dummyk(1:3);
+
+
+%%%%%%%%%%%%%The wrist%%%%%%%%%%%%%
+    Vertex_1_final  = P(i,:)';
+         if i<4
+        Vertex_2_final = P(i+1,:)';
+         else
+        Vertex_2_final = P(1,:)';
+         end
+    End_effector_final= Pc';
+    end_plate_length = sqrt((P(i,1) - Pc(1))^2 + (P(i,2) - Pc(2))^2 + (P(i,3) - Pc(3))^2);
+    
+    
+    %Defining transformation for Rotation matrix
+    %Defining various Vertex points
+    First_vertex_translate = [1 0 0 -Vertex_1_final(1);0 1 0 -Vertex_1_final(2);0  0 1 -Vertex_1_final(3);0  0  0 1];
+    End_effector_wrt_Vertex1 = First_vertex_translate*[End_effector_final;1];
+    rangle = atan(length/breadth) * ((End_effector_wrt_Vertex1(1)*End_effector_wrt_Vertex1(2))/abs(End_effector_wrt_Vertex1(1)*End_effector_wrt_Vertex1(2)));
+    Rz_anti = [cos(rangle), -sin(rangle),0,0; sin(rangle),cos(rangle),0,0; 0, 0, 1, 0; 0, 0, 0, 1];
+    End_effector_wrt_Vertex1Rot = Rz_anti*End_effector_wrt_Vertex1;
+    End_effector_flat_wrt_Vertex1Rot = Rz_anti*[length/2;-breadth/2;0;1];
+
+    
+    Vertex_2_final_wrt_Vertex1 = First_vertex_translate * [Vertex_2_final;1];
+    Vertex_2_final_wrt_Vertex1Rot = Rz_anti*Vertex_2_final_wrt_Vertex1;
+    length_m = [length, 0, 0; 0, -breadth, 0; -length, 0, 0; 0, breadth,0];
+    
+    Vertex_2_flat_wrt_Vertex1Rot = Rz_anti*[length_m(i,1);length_m(i,2);length_m(i,3);1];
+
+    %%Calculation of angle Theta14 & Theta15
+    Theta_five(i) = asin(End_effector_wrt_Vertex1Rot(1)/end_plate_length);
+    Theta_four(i) = asin(-End_effector_wrt_Vertex1Rot(3)/(end_plate_length*cos(Theta_five(i))));
+    
+    R_theta14 = [1, 0, 0;0, cos(Theta_four(i)), -sin(Theta_four(i));0, sin(Theta_four(i)), cos(Theta_four(i))];
+    R_theta15 = [cos(Theta_five(i)), -sin(Theta_five(i)), 0;sin(Theta_five(i)), cos(Theta_five(i)), 0;0, 0, 1];
+  
+    
+    %%Calculation of angle Theta16
+    Vertex_2_interim = R_theta15'*R_theta14'*Vertex_2_final_wrt_Vertex1Rot(1:3);
+    %For ease of writing the eqn
+    a = Vertex_2_flat_wrt_Vertex1Rot(1);
+    c = Vertex_2_flat_wrt_Vertex1Rot(3);
+    inter_val = (a*(Vertex_2_interim(1)) + c*(Vertex_2_interim(3)));
+    if inter_val < -1
+        inter_val = -1;
+    else if inter_val>1
+            inter_val = 1;
+        end
+    end
+    
+    Theta_six(i) = acos(inter_val/(a*a+c*c));
+%     theta16 = acos((X1*a+XVertex_2_interim3*c)/(a*a+c*c));
+
+    R_theta16 = [cos(Theta_six(i)) 0 sin(Theta_six(i));0 1 0;-sin(Theta_six(i)) 0 cos(Theta_six(i))];
+    Vertex_test_2_test = R_theta14*R_theta15*R_theta16*Vertex_2_flat_wrt_Vertex1Rot(1:3);
+    Vertex_2_final_wrt_Vertex1Rot;
+
+end
+
+Diif = P-K_matrix;
+
+end
